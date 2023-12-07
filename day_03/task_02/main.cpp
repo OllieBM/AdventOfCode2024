@@ -10,7 +10,64 @@
 #include <string>
 #include <vector>
 
-std::vector<std::vector<char>> get_all_numbers(
+// std::vector<std::vector<char>> get_all_numbers(
+//     std::string filename,
+//     std::map<std::pair<int /*y*/, int /*x*/>, size_t /*vector position*/>
+//         &mapping,
+//     std::vector<std::pair<int, int>> &gears, std::vector<int> &numbers) {
+
+//   numbers.clear();
+//   gears.clear();
+//   mapping.clear();
+
+//   auto ifs = std::ifstream(filename);
+//   if (!ifs.is_open()) {
+//     std::cout << "Error opening file.\n";
+//     exit(-1);
+//   }
+
+//   std::vector<std::vector<char>> grid;
+
+//   auto re = std::regex("([0-9]+)");
+//   int y = 0;
+//   for (std::string line; std::getline(ifs, line, '\n'); y++) {
+
+//     grid.push_back(std::vector<char>(line.begin(), line.end()));
+//     auto it = line.begin();
+//     auto end = line.end();
+
+//     while (it != end) {
+//       it = std::find_if(it, end, static_cast<int (*)(int)>(std::isdigit));
+//       auto n =
+//           std::find_if_not(it, end, static_cast<int (*)(int)>(std::isdigit));
+
+//       if (n != end) {
+//         // auto x0 = static_cast<int>(std::distance(line.begin(), it));
+//         // auto x1 = static_cast<int>(std::distance(line.begin(), n) - 1);
+//         // std::cout << "[" << x0 << "," << x1 << "] " << std::string{it, n}
+//         //           << std::endl;
+
+//         auto found = std::string{it, n};
+//         // std::cout << "found " << found << std::endl;
+//         numbers.push_back(std::atoi(found.c_str()));
+//         for (auto x = static_cast<int>(std::distance(line.begin(), it));
+//              x < static_cast<int>(std::distance(line.begin(), n)); x++)
+//           mapping.insert({{y, x}, numbers.size() - 1});
+//       }
+
+//       it = n;
+//     }
+
+//     for (int x = 0; x < line.size(); x++) {
+//       if (line[x] == '*') {
+//         gears.push_back({y, x});
+//       }
+//     }
+//   }
+//   return grid;
+// }
+
+std::vector<std::vector<char>> get_all_part_numbers(
     std::string filename,
     std::map<std::pair<int /*y*/, int /*x*/>, size_t /*vector position*/>
         &mapping,
@@ -41,19 +98,15 @@ std::vector<std::vector<char>> get_all_numbers(
       auto n =
           std::find_if_not(it, end, static_cast<int (*)(int)>(std::isdigit));
 
-      if (n != end) {
-        // auto x0 = static_cast<int>(std::distance(line.begin(), it));
-        // auto x1 = static_cast<int>(std::distance(line.begin(), n) - 1);
-        // std::cout << "[" << x0 << "," << x1 << "] " << std::string{it, n}
-        //           << std::endl;
+      // now we need to find out if this is a part number
+      auto x0 = std::distance(it, line.begin());
 
-        auto found = std::string{it, n};
-        // std::cout << "found " << found << std::endl;
-        numbers.push_back(std::atoi(found.c_str()));
-        for (auto x = static_cast<int>(std::distance(line.begin(), it));
-             x < static_cast<int>(std::distance(line.begin(), n)); x++)
-          mapping.insert({{y, x}, numbers.size() - 1});
-      }
+      auto found = std::string{it, n};
+
+      numbers.push_back(std::atoi(found.c_str()));
+      for (auto x = static_cast<int>(std::distance(line.begin(), it));
+           x < static_cast<int>(std::distance(line.begin(), n)); x++)
+        mapping.insert({{y, x}, numbers.size() - 1});
 
       it = n;
     }
@@ -72,14 +125,14 @@ int main(void) {
   auto mapping = std::map<std::pair<int, int>, size_t>{};
   auto gears = std::vector<std::pair<int, int>>{};
   auto numbers = std::vector<int>{};
-  auto grid = get_all_numbers("input.txt", std::ref(mapping), std::ref(gears),
-                              std::ref(numbers));
+  auto grid = get_all_part_numbers("input.txt", std::ref(mapping),
+                                   std::ref(gears), std::ref(numbers));
 
   std::cout << numbers.size() << " total numbers." << std::endl;
   std::cout << mapping.size() << " total number characters " << std::endl;
   std::cout << gears.size() << " total number of gears " << std::endl;
 
-  unsigned long long total = 0;
+  unsigned long long int total = 0;
   for (auto gear : gears) {
     int x = 0;
     int y = 0;
@@ -96,7 +149,7 @@ int main(void) {
         auto it = mapping.find({iy, ix});
         if (it != mapping.end()) {
           // std::cout << numbers[it->second] << std::endl;
-          matches.insert(it->second);
+          matches.insert(it->second); // add the vector index
         }
       }
       // std::cout << std::endl;
@@ -104,13 +157,19 @@ int main(void) {
 
     if (matches.size() == 2) {
       int delta = 1;
+      // std::cout << "found ";
       for (auto i : matches) {
+        // std::cout << " " << numbers[i] << " ";
         delta *= numbers[i];
       }
+      // std::cout << std::endl;
+      // std::cout << "adding " << delta << std::endl;
       total += delta;
+    } else {
+      // std::cout << "found no matches for [y,x] " << y + 1 << ", " << x + 1
+      //           << "\n";
     }
   }
-  std::cout << " should not be : " << 79570642 << std::endl;
-  std::cout << "total " << total << std::endl;
+
   return 0;
 }
