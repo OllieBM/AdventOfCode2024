@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <queue>
 #include <regex>
 #include <string>
@@ -10,7 +11,7 @@
 
 using namespace std;
 
-unordered_map<string, vector<string>> Solution(string filename) {
+map<size_t, size_t> Solution(string filename) {
   auto ifs = ifstream(filename);
   if (!ifs.is_open()) {
     cout << "Error opening file.\n";
@@ -18,7 +19,7 @@ unordered_map<string, vector<string>> Solution(string filename) {
   }
 
   // game id to winning numbers
-  unordered_map<string, vector<string>> games_to_wins{};
+  map<size_t, size_t> games_to_wins{};
 
   for (string line; getline(ifs, line, '\n');) {
 
@@ -27,10 +28,12 @@ unordered_map<string, vector<string>> Solution(string filename) {
     auto start = find(line.begin(), line.end(), ':');
     auto sep = find(start, line.end(), '|');
 
-    string id = "";
-    auto idRe = regex("^Card ([0-9]+):");
+    auto id = size_t{};
+    auto idRe = regex("^Card\\s+([0-9]+):");
     for_each(sregex_token_iterator(line.begin(), sep, idRe, 1),
-             sregex_token_iterator(), [&id](auto i) { id = i.str(); });
+             sregex_token_iterator(), [&id](auto i) {
+               id = static_cast<size_t>(atoi(i.str().c_str()));
+             });
 
     auto re = regex("([0-9]+)");
     for_each(sregex_token_iterator(start, sep, re, 1), sregex_token_iterator(),
@@ -42,40 +45,40 @@ unordered_map<string, vector<string>> Solution(string filename) {
                }
              });
 
-    games_to_wins.insert({id, our_winning_numbers});
+    games_to_wins.insert({id, our_winning_numbers.size()});
   }
+  games_to_wins.erase(0);
   return games_to_wins;
 }
 
 int main(void) {
 
-  //   unordered_map<string, vector<int>> game_to_wins{};
-  queue<string> pending{};
-  vector<string> visited{};
-  auto game_to_wins = Solution("test_input.txt");
-  for (auto it : game_to_wins) {
-    // cout << "Card " << it.first << ": ";
-    // for (auto v : it.second) {
-    //   cout << v << " ";
-    // }
-    // cout << "\n";
-    visited.push_back(it.first);
-    for_each(it.second.begin(), it.second.end(),
-             [&pending](auto i) { pending.push(i); });
+  //   map<string, vector<int>> game_to_wins{};
+  queue<size_t> pending{};
+  //   pending.push(1UL);
+  vector<size_t> visited{};
+
+  auto game_to_wins = Solution("input.txt");
+  for (size_t i = 1; i <= game_to_wins.size(); i++) {
+    pending.push(i);
   }
   while (!pending.empty()) {
-    auto curr = pending.front();
-
-    // keep track of the number of wins
-    visited.push_back(curr);
-
-    auto it = game_to_wins.find(curr);
-    // it should never be == game_to_wins.end()
-    assert(it != game_to_wins.end());
-    // add the wins to the pending
-    for_each(it->second.begin(), it->second.end(),
-             [&pending](auto i) { pending.push(i); });
+    auto i = pending.front();
     pending.pop();
+    visited.push_back(i);
+
+    auto it = game_to_wins.find(i);
+    if (it != game_to_wins.end()) {
+      auto wins = it->second;
+      // std::cout << "card [" << it->first << "]"
+      //           << " won " << wins << " times\n";
+      for (auto j = 1; j < wins + 1; ++j) {
+        pending.push(j + i);
+      }
+    }
+    // if (visited.size() > 50) {
+    //   break;
+    // }
   }
   std::cout << "number of wins: " << visited.size() << std::endl;
 }
