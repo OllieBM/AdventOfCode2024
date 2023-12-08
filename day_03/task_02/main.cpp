@@ -85,8 +85,7 @@ std::vector<std::vector<char>> get_all_part_numbers(
 
   std::vector<std::vector<char>> grid;
 
-  auto re = std::regex("([0-9]+)");
-  int y = 0;
+    int y = 0;
   for (std::string line; std::getline(ifs, line, '\n'); y++) {
 
     grid.push_back(std::vector<char>(line.begin(), line.end()));
