@@ -82,7 +82,6 @@ void ParseInput(
         seeds.push_back({s, e});
       }
     } else if (s.rfind("seed-to-soil", 0) != string::npos) {
-      // std::cout << "add to map : seed-to-soil" << endl;
       add_mapping(s, ref(seed_to_soil));
     } else if (s.rfind("soil-to-fertilizer", 0) != string::npos) {
       add_mapping(s, ref(soil_to_fertilizer));
@@ -97,6 +96,7 @@ void ParseInput(
     } else if (s.rfind("humidity-to-location", 0) != string::npos) {
       add_mapping(s, ref(humidity_to_location));
     } else {
+      // assert here
       cout << "unkown\n[" << s << "]\n";
     }
     //
@@ -132,14 +132,7 @@ int main(void) {
   std::sort(temperature_to_humidity.begin(), temperature_to_humidity.end());
   std::sort(humidity_to_location.begin(), humidity_to_location.end());
 
-  // for (auto i : seed_to_soil) {
-  //   std::cout << i.destination << " " << i.source << " " << i.range << "\n";
-  // }
-  // std::cout << "\n\n";
-  // for (auto i : soil_to_fertilizer) {
-  //   std::cout << i.destination << " " << i.source << " " << i.range << "\n";
-  // }
-  // exit(-1);
+  // debug
   // std::cout << " seeds count \t" << seeds.size() << std::endl;
   // std::cout << " seed_to_soil count \t" << seed_to_soil.size() << std::endl;
   // std::cout << " soil_to_fertilizer count \t" << soil_to_fertilizer.size()
@@ -156,45 +149,34 @@ int main(void) {
   // humidity_to_location.size()
   //           << std::endl;
 
-  // exit(-1);
   auto find_value_from_mapping = [](unsigned long long source,
                                     const std::vector<Mapping> &mapping) {
-    // return it->destination + (source - it->source);
-    // inefficient loop here, i can use partition or
-    for (auto i = size_t{0}; i < mapping.size(); i++) {
+    auto it =
+        upper_bound(mapping.begin(), mapping.end(), source,
+                    // element value
+                    [](unsigned long long value, const Mapping &i) -> bool {
+                      return value < (i.source + i.range);
+                    });
 
-      auto m = mapping[i];
-      // if (source < m.source || source > (m.source + m.range)) {
-      //   continue;
-      // }
+    if (it != mapping.end()) {
 
-      auto v = source - m.source;
-      if (v < 0) {
-        continue;
+      if (it->source > source) {
+        return source;
       }
-      if (v < m.range) {
-        return m.destination + v;
-      }
+      return it->destination + (source - it->source);
     }
-    // if there is no mapping assume it is the same
+
     return source;
   };
-
-  // auto min_location = numeric_limits<unsigned long long>::max();
   std::vector<future<unsigned long long>> futures{};
   for (auto i : seeds) {
-    //{
-    // std::pair<unsigned long long, unsigned long long> i = {82, 0};
-
-    // auto result = std::async([]() { return perform_long_computation();
-    // }); MyResult finalResult = result.get();
 
     futures.push_back(std::async(std::launch::async, [=]() {
       auto min_location = numeric_limits<unsigned long long>::max();
-      // std::cout << "seed " << i;
       for (auto seed = i.first; seed <= i.first + i.second; seed++) {
 
         auto soil = find_value_from_mapping(seed, seed_to_soil);
+
         auto fertilizer = find_value_from_mapping(soil, soil_to_fertilizer);
         auto water = find_value_from_mapping(fertilizer, fertilizer_to_water);
         auto light = find_value_from_mapping(water, water_to_light);
@@ -204,7 +186,7 @@ int main(void) {
         auto location = find_value_from_mapping(humidity, humidity_to_location);
 
         // std::cout << " location " << location << std::endl;
-        auto ss = std::stringstream{};
+        // auto ss = std::stringstream{};
         // ss << "seed [" << seed << "] ";
         // ss << "soil " << soil << " ";
         // ss << "fertilizer " << fertilizer << " ";
@@ -213,12 +195,11 @@ int main(void) {
         // ss << "temperature " << temperature << " ";
         // ss << "humidity " << humidity << " ";
         // ss << "location " << location << "\n";
-        min_location = min(location, min_location);
         // std::cout << ss.str();
+        min_location = min(location, min_location);
       }
       return min_location;
     }));
-    // min_location = min(location, min_location);
   }
 
   auto min_location = numeric_limits<unsigned long long>::max();
